@@ -1,0 +1,67 @@
+#NOTAS AULA 1
+Agora que vamos trabalhar com a camada web utilizando o Go, precisaremos de um servidor que vai atender as nossas requisições.
+
+Para isso, vamos instanciar um servidor utilizando o pacote "net/http" com a função ListenAndServe:
+
+package main
+
+import "net/http"
+
+func main() {
+    http.ListenAndServe(":8080", nil)
+}
+
+No Go, as páginas web são chamadas de 'templates', portanto, vamos criar um diretório para centralizá-las:
+|- templates
+|-- index.html
+
+Para carregar os templates, utilizaremos a função Must do pacote 'template' juntamente com a função ParseGlob informando o caminho onde as páginas estão armazenadas:
+var templates = templates.Must(template.ParseGlob("templates/*.html"))
+
+Uma vez que carregamos os templates, vamos vinculá-los aos endereços que utilizaremos pra chamá-las:
+
+...
+func main() {
+    http.HandleFunc("/", index)
+    http.ListenAndServe(":8080", nil)
+}
+
+A função HandleFunc recebe dois parâmetros:
+1º O endereço que será atendido
+2º Quem atenderá a requisição
+
+O segundo parâmetro do HandleFunc, deve ser uma função capaz de trabalhar com outros dois structs do Go:
+http.ResponseWriter -> Responsável por escrever na saída da requisição
+http.Request -> Responsável por atender a requisição
+
+func index(writer http.ResponseWriter, request *http.Request) {
+    templates.ExecuteTemplate(writer, "index", nil)
+}
+
+A página HTML que vamos criar, precisa ser embarcada nas tags do Go para que possa ser renderizada.
+
+As tags mencionadas acima são:
+{{ define "index" -> Pois o segundo argumento da função ExecuteTemplate é index também}}
+... HTML
+{{end}}
+
+Para enviarmos conteúdo do backend para o frontend, utilizamos o terceiro argumento do método ExecuteTemplate:
+func index(writer http.ResponseWriter, request *http.Request) {
+    templates.ExecuteTemplate(writer, "index", data)
+}
+
+E no nosso frontend, vamos utilizar range para iterar sobre o data:
+<table>
+    <thead>
+    ...
+    </thead>
+    <tbody>
+        ...
+        {{range .}}
+        <tr>
+            <td>{{.Nome}}</td>
+            <td>{{.Descricao}}</td>
+        </tr>
+        {{end}}
+    </tbody>
+</table>
