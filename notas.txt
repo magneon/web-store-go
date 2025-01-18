@@ -124,3 +124,10 @@ for query.Next() {
     }
     produtos = append(produtos, p)
 }
+
+#NOTAS AULA 3
+Modularizando o projeto em Clean Arch:
+web-store-go
+|- application
+|--- domain
+|- infra
