@@ -65,3 +65,62 @@ E no nosso frontend, vamos utilizar range para iterar sobre o data:
         {{end}}
     </tbody>
 </table>
+
+#NOTAS AULA 2
+Podemos utilizar o site abaixo:
+godoc.org
+
+Para pesquisar pacotes para utilizarmos em nossas aplicações.
+
+Uma vez escolhida a biblioteca que queremos utilizar, basta rodar o comando:
+go get <endereço>
+
+Para conectarmos nossa aplicação com o banco de dados, precisamos definir uma função que retorne um ponteiro para o banco de dados:
+func conectar() *sql.DB {
+    conexao := "user=root dbname=alura_loja password=toor host=localhost sslmode=disable"
+
+    db, erro := sql.Open("postgres", conexao)
+    if erro != nil {
+        fmt.Println("Erro ao conectar no banco de dados")
+    }
+
+    return db
+}
+
+Para garantirmos que a conexão com o banco de dados foi encerrada, utilizamos a palavra chave defer:
+func main() {
+    db := conectar()
+    defer db.Close()
+}
+
+Uma vez que temos uma referência ao banco de dados 'db', utilizamos a função Query para executar nossa consulta:
+query := "SELECT * FROM produtos"
+db.Query(query)
+
+A função Query tem dois retornos:
+1º *sql.Rows
+2º error
+
+Basta verificarmos se há algum erro, caso contrário, iterar sobre as linhas retornadas:
+if error != nil {
+    panic(error.Error())
+}
+
+for query.Next() {
+    ...
+}
+
+Uma vez que temos a linha obtida através da função .Next(), devemos escanear o conteúdo da linha, passando cada coluna para um endereço de memória diferente:
+for query.Next() {
+    var id int
+    var nome string
+    var descricao string
+
+    err := query.Scan(&id, &nome, &descricao)
+    if err != nil {
+        p.Id = id
+        p.Nome = nome
+        p.Descricao = descricao
+    }
+    produtos = append(produtos, p)
+}
