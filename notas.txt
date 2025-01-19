@@ -131,3 +131,46 @@ web-store-go
 |- application
 |--- domain
 |- infra
+
+Quando queremos inserir itens no banco de dados precisamos criar uma função na nossa Controller, que usa os mesmos argumentos das demais Controllers:
+http.ResponseWriter
+http.Request
+
+Contudo, temos que verificar se a requisição recebida é do tipo POST:
+http.Request == http.POST
+
+func Insert(writer http.ResponseWriter, request http.Request) {
+    if request.Method() == "POST" {
+        name := request.FormValue("nome")
+    }
+}
+
+A função FormValue() busca o conteúdo do campo baseado no campo 'name' do html, ou seja, se tivermos um campo de texto com o valor cotacao:
+<input type="text" name="cotacao"></input>
+
+Temos que obter seu valor utilizando:
+cotacao := request.FormValue("cotacao")
+
+Importante sempre converter o conteúdo recebido do formulário nos formatos corretos:
+cotacao, erro := strconv.ParseFloat(request.FormValue("cotacao"), 64)
+if erro != nil {
+    log.Println("Falha ao converter o campo cotação", erro)
+}
+
+Uma vez que temos todos os campos mapeados para criar novos itens no banco, temos que redirecionar a chamada para não ficarmos presos no formulário:
+http.Redirect(writer, request, "/", 301)
+
+Para gravarmos os dados no banco de dados, primeiro temos que garantir que nossa instrução de inclusão está correta:
+db := rep.Connect()
+
+sql := "INSERT INTO table (column1, column2) VALUES ($1, $2)
+statement, error := db.Prepare(sql)
+if error != nil {
+    panic(error.Error())
+}
+
+statement.Exec(value1, value2)
+defer db.Close()
+
+Por fim, precisamos indicar para as rotas que, quando o endereço /insert for chamado, a função Insert da Controller precisa ser invocada:
+http.HandleFunc("/insert", prd.Insert)

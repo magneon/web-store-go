@@ -8,4 +8,5 @@ import (
 func Routes() {
 	http.HandleFunc("/", ctr.Index)
 	http.HandleFunc("/new", ctr.New)
+	http.HandleFunc("/insert", ctr.Insert)
 }
