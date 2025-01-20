@@ -1,0 +1,198 @@
+#NOTAS AULA 1
+Agora que vamos trabalhar com a camada web utilizando o Go, precisaremos de um servidor que vai atender as nossas requisições.
+
+Para isso, vamos instanciar um servidor utilizando o pacote "net/http" com a função ListenAndServe:
+
+package main
+
+import "net/http"
+
+func main() {
+    http.ListenAndServe(":8080", nil)
+}
+
+No Go, as páginas web são chamadas de 'templates', portanto, vamos criar um diretório para centralizá-las:
+|- templates
+|-- index.html
+
+Para carregar os templates, utilizaremos a função Must do pacote 'template' juntamente com a função ParseGlob informando o caminho onde as páginas estão armazenadas:
+var templates = templates.Must(template.ParseGlob("templates/*.html"))
+
+Uma vez que carregamos os templates, vamos vinculá-los aos endereços que utilizaremos pra chamá-las:
+
+...
+func main() {
+    http.HandleFunc("/", index)
+    http.ListenAndServe(":8080", nil)
+}
+
+A função HandleFunc recebe dois parâmetros:
+1º O endereço que será atendido
+2º Quem atenderá a requisição
+
+O segundo parâmetro do HandleFunc, deve ser uma função capaz de trabalhar com outros dois structs do Go:
+http.ResponseWriter -> Responsável por escrever na saída da requisição
+http.Request -> Responsável por atender a requisição
+
+func index(writer http.ResponseWriter, request *http.Request) {
+    templates.ExecuteTemplate(writer, "index", nil)
+}
+
+A página HTML que vamos criar, precisa ser embarcada nas tags do Go para que possa ser renderizada.
+
+As tags mencionadas acima são:
+{{ define "index" -> Pois o segundo argumento da função ExecuteTemplate é index também}}
+... HTML
+{{end}}
+
+Para enviarmos conteúdo do backend para o frontend, utilizamos o terceiro argumento do método ExecuteTemplate:
+func index(writer http.ResponseWriter, request *http.Request) {
+    templates.ExecuteTemplate(writer, "index", data)
+}
+
+E no nosso frontend, vamos utilizar range para iterar sobre o data:
+<table>
+    <thead>
+    ...
+    </thead>
+    <tbody>
+        ...
+        {{range .}}
+        <tr>
+            <td>{{.Nome}}</td>
+            <td>{{.Descricao}}</td>
+        </tr>
+        {{end}}
+    </tbody>
+</table>
+
+#NOTAS AULA 2
+Podemos utilizar o site abaixo:
+godoc.org
+
+Para pesquisar pacotes para utilizarmos em nossas aplicações.
+
+Uma vez escolhida a biblioteca que queremos utilizar, basta rodar o comando:
+go get <endereço>
+
+Para conectarmos nossa aplicação com o banco de dados, precisamos definir uma função que retorne um ponteiro para o banco de dados:
+func conectar() *sql.DB {
+    conexao := "user=root dbname=alura_loja password=toor host=localhost sslmode=disable"
+
+    db, erro := sql.Open("postgres", conexao)
+    if erro != nil {
+        fmt.Println("Erro ao conectar no banco de dados")
+    }
+
+    return db
+}
+
+Para garantirmos que a conexão com o banco de dados foi encerrada, utilizamos a palavra chave defer:
+func main() {
+    db := conectar()
+    defer db.Close()
+}
+
+Uma vez que temos uma referência ao banco de dados 'db', utilizamos a função Query para executar nossa consulta:
+query := "SELECT * FROM produtos"
+db.Query(query)
+
+A função Query tem dois retornos:
+1º *sql.Rows
+2º error
+
+Basta verificarmos se há algum erro, caso contrário, iterar sobre as linhas retornadas:
+if error != nil {
+    panic(error.Error())
+}
+
+for query.Next() {
+    ...
+}
+
+Uma vez que temos a linha obtida através da função .Next(), devemos escanear o conteúdo da linha, passando cada coluna para um endereço de memória diferente:
+for query.Next() {
+    var id int
+    var nome string
+    var descricao string
+
+    err := query.Scan(&id, &nome, &descricao)
+    if err != nil {
+        p.Id = id
+        p.Nome = nome
+        p.Descricao = descricao
+    }
+    produtos = append(produtos, p)
+}
+
+#NOTAS AULA 3
+Modularizando o projeto em Clean Arch:
+web-store-go
+|- application
+|--- domain
+|- infra
+
+Quando queremos inserir itens no banco de dados precisamos criar uma função na nossa Controller, que usa os mesmos argumentos das demais Controllers:
+http.ResponseWriter
+http.Request
+
+Contudo, temos que verificar se a requisição recebida é do tipo POST:
+http.Request == http.POST
+
+func Insert(writer http.ResponseWriter, request http.Request) {
+    if request.Method() == "POST" {
+        name := request.FormValue("nome")
+    }
+}
+
+A função FormValue() busca o conteúdo do campo baseado no campo 'name' do html, ou seja, se tivermos um campo de texto com o valor cotacao:
+<input type="text" name="cotacao"></input>
+
+Temos que obter seu valor utilizando:
+cotacao := request.FormValue("cotacao")
+
+Importante sempre converter o conteúdo recebido do formulário nos formatos corretos:
+cotacao, erro := strconv.ParseFloat(request.FormValue("cotacao"), 64)
+if erro != nil {
+    log.Println("Falha ao converter o campo cotação", erro)
+}
+
+Uma vez que temos todos os campos mapeados para criar novos itens no banco, temos que redirecionar a chamada para não ficarmos presos no formulário:
+http.Redirect(writer, request, "/", 301)
+
+Para gravarmos os dados no banco de dados, primeiro temos que garantir que nossa instrução de inclusão está correta:
+db := rep.Connect()
+
+sql := "INSERT INTO table (column1, column2) VALUES ($1, $2)
+statement, error := db.Prepare(sql)
+if error != nil {
+    panic(error.Error())
+}
+
+statement.Exec(value1, value2)
+defer db.Close()
+
+Por fim, precisamos indicar para as rotas que, quando o endereço /insert for chamado, a função Insert da Controller precisa ser invocada:
+http.HandleFunc("/insert", prd.Insert)
+
+#NOTAS AULA 4
+Uma característica bem importante do Go é conseguir segregar partes das páginas HTML em partes menores, as chamadas PARTIALS.
+
+Com as partials, vamos conseguir agrupar o código quue é comum em várias páginas e deixá-los segregados, podendo ser injetados onde quisermos.
+
+Para criar uma partial, basta criarmos um arquivo html com um underscore antes do seu nome:
+
+template/_head.html
+
+Dentro do arquivo, precisamos definí-lo como partial. Fazemos isso com a palavra 'define':
+```
+{{define "_head"}}
+[...]
+{{end}}
+```
+
+Feito isso, basta importarmos esse trecho utilizando a palavra chave template na página onde receberá o partial:
+```index.html
+{{template "_head"}}
+[...]
+```
