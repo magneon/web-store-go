@@ -45,7 +45,7 @@ func GetAllProducts() []Product {
 	return products
 }
 
-func CreateNew(name string, description string, quantity int, price float64) {
+func CreateProduct(name string, description string, quantity int, price float64) {
 	insert := "INSERT INTO produtos (nome, descricao, quantidade, preco) VALUES ($1, $2, $3, $4)"
 
 	db := rep.Conectar()
@@ -69,5 +69,46 @@ func DeleteProduct(id string) {
 	}
 
 	statement.Exec(id)
+	defer db.Close()
+}
+
+func GetProduct(id int) Product {
+	query := "SELECT * FROM produtos WHERE id = $1"
+
+	db := rep.Conectar()
+	statement, error := db.Query(query, id)
+	if error != nil {
+		panic(error.Error())
+	}
+
+	product := Product{}
+	for statement.Next() {
+		var name string
+		var description string
+		var price float64
+		var quantity int
+
+		statement.Scan(&id, &name, &description, &price, &quantity)
+		product.Id = id
+		product.Name = name
+		product.Description = description
+		product.Price = price
+		product.Quantity = quantity
+	}
+
+	defer db.Close()
+	return product
+}
+
+func UpdateProduct(id int, name string, description string, price float64, quantity int) {
+	update := "UPDATE produtos SET nome = $2, descricao = $3, preco = $4, quantidade = $5 WHERE id = $1"
+
+	db := rep.Conectar()
+	statement, error := db.Prepare(update)
+	if error != nil {
+		panic(error.Error())
+	}
+
+	statement.Exec(id, name, description, price, quantity)
 	defer db.Close()
 }

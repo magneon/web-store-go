@@ -35,7 +35,7 @@ func Insert(writer http.ResponseWriter, request *http.Request) {
 			log.Println("Falha ao converter o preço", error)
 		}
 
-		prd.CreateNew(name, description, quantity, price)
+		prd.CreateProduct(name, description, quantity, price)
 	}
 	http.Redirect(writer, request, "/", http.StatusMovedPermanently)
 }
@@ -44,4 +44,38 @@ func Delete(writer http.ResponseWriter, request *http.Request) {
 	id := request.URL.Query().Get("id")
 	prd.DeleteProduct(id)
 	http.Redirect(writer, request, "/", http.StatusMovedPermanently)
+}
+
+func Edit(writer http.ResponseWriter, request *http.Request) {
+	id, error := strconv.Atoi(request.URL.Query().Get("id"))
+	if error != nil {
+		panic(error.Error())
+	}
+	product := prd.GetProduct(id)
+	temp.ExecuteTemplate(writer, "edit", product)
+}
+
+func Update(writer http.ResponseWriter, request *http.Request) {
+	if request.Method == "POST" {
+		id, error := strconv.Atoi(request.FormValue("id"))
+		if error != nil {
+			panic(error.Error())
+		}
+
+		price, error := strconv.ParseFloat(request.FormValue("price"), 64)
+		if error != nil {
+			panic(error.Error())
+		}
+
+		quantity, error := strconv.Atoi(request.FormValue("quantity"))
+		if error != nil {
+			panic(error.Error())
+		}
+
+		name := request.FormValue("name")
+		description := request.FormValue("description")
+
+		prd.UpdateProduct(id, name, description, price, quantity)
+		http.Redirect(writer, request, "/", http.StatusMovedPermanently)
+	}
 }
