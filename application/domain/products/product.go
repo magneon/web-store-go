@@ -24,20 +24,20 @@ func GetAllProducts() []Product {
 	for result.Next() {
 		var id int
 		var nome string
-		var description string
-		var price float64
-		var quantity int
+		var descricao string
+		var preco float64
+		var quantidade int
 
-		err := result.Scan(&id, &nome, &description, &price, &quantity)
+		err := result.Scan(&id, &nome, &descricao, &preco, &quantidade)
 		if err != nil {
 			panic(err.Error())
 		}
 
 		product.Id = id
 		product.Name = nome
-		product.Description = description
-		product.Price = price
-		product.Quantity = quantity
+		product.Description = descricao
+		product.Price = preco
+		product.Quantity = quantidade
 		products = append(products, product)
 	}
 
@@ -56,5 +56,18 @@ func CreateNew(name string, description string, quantity int, price float64) {
 	}
 
 	statement.Exec(name, description, quantity, price)
+	defer db.Close()
+}
+
+func DeleteProduct(id string) {
+	delete := "DELETE FROM produtos WHERE id = $1"
+	db := rep.Conectar()
+
+	statement, error := db.Prepare(delete)
+	if error != nil {
+		panic(error.Error())
+	}
+
+	statement.Exec(id)
 	defer db.Close()
 }

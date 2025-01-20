@@ -174,3 +174,25 @@ defer db.Close()
 
 Por fim, precisamos indicar para as rotas que, quando o endereço /insert for chamado, a função Insert da Controller precisa ser invocada:
 http.HandleFunc("/insert", prd.Insert)
+
+#NOTAS AULA 4
+Uma característica bem importante do Go é conseguir segregar partes das páginas HTML em partes menores, as chamadas PARTIALS.
+
+Com as partials, vamos conseguir agrupar o código quue é comum em várias páginas e deixá-los segregados, podendo ser injetados onde quisermos.
+
+Para criar uma partial, basta criarmos um arquivo html com um underscore antes do seu nome:
+
+template/_head.html
+
+Dentro do arquivo, precisamos definí-lo como partial. Fazemos isso com a palavra 'define':
+```
+{{define "_head"}}
+[...]
+{{end}}
+```
+
+Feito isso, basta importarmos esse trecho utilizando a palavra chave template na página onde receberá o partial:
+```index.html
+{{template "_head"}}
+[...]
+```

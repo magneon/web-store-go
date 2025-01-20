@@ -39,3 +39,9 @@ func Insert(writer http.ResponseWriter, request *http.Request) {
 	}
 	http.Redirect(writer, request, "/", http.StatusMovedPermanently)
 }
+
+func Delete(writer http.ResponseWriter, request *http.Request) {
+	id := request.URL.Query().Get("id")
+	prd.DeleteProduct(id)
+	http.Redirect(writer, request, "/", http.StatusMovedPermanently)
+}
